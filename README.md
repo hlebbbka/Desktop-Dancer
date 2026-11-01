@@ -16,13 +16,11 @@ Windows 10/11 x64 is required. The release includes .NET; install [Microsoft Edg
 
 ### Solo dance, equalizer and wandering trail
 
-![Solo dance with a bass-reactive equalizer and wandering trail](docs/images/solo.gif)
+![Solo dance with a bass-reactive equalizer and wandering trail](docs/images/solo.png)
 
-### Duet and Dance-battle
+### Duet
 
-![Two characters take turns dancing in Dance-battle](docs/images/battle.gif)
-
-These demonstrations use an illustrative beat. Actual movement depends on the playing audio and selected settings.
+![Two characters dancing together in duet mode](docs/images/duet.png)
 
 ## Features
 
