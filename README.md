@@ -28,6 +28,10 @@ Windows 10/11 x64 is required. The release includes .NET; install [Microsoft Edg
 
 ![Spotify lyrics displayed behind the dancing characters](docs/images/lyrics.png)
 
+### Desktop pet
+
+![Dancing cat companion on the Windows desktop](docs/images/desktop-pet.png)
+
 ## Features
 
 - System audio capture: works with Spotify and other music apps.
