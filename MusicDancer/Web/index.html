@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}canvas{position:absolute;inset:0;display:block;width:100%;height:100%}#canvas{opacity:0;transition:opacity .65s ease-out}</style></head><body><canvas id="canvas"></canvas><script type="module">
+// Tubes Cursor and Liquid Effect by Kevin Levron / soju22, CC BY-NC-SA 4.0.
+import TubesCursor from './tubes1.min.js';
+import {WanderingMotion} from './wandering.mjs';
+
+if(navigator.gpu){const request=navigator.gpu.requestAdapter.bind(navigator.gpu);navigator.gpu.requestAdapter=async options=>{const adapter=await request({...options,powerPreference:window.__dancerLowPower?'low-power':'high-performance'});if(adapter){const info=adapter.info || await adapter.requestAdapterInfo?.();window.chrome.webview.postMessage('gpu:'+JSON.stringify({api:'WebGPU',vendor:info?.vendor,device:info?.device,description:info?.description}));}return adapter;};}
+try {
+
+ const app=TubesCursor(document.getElementById('canvas'),{tubes:{lerp:2/3,colors:['#f967fb','#53bc28','#6958d5'],lights:{intensity:200,colors:['#83f36e','#fe8a2e','#ff008a','#60aed5']}}});
+let profileTimes=[],profileCpu=[],profileLast=0;
+ if(location.search.includes('profile')){
+ const samples=[],events=[],epoch=performance.now();let second=-1;
+ try{new PerformanceObserver(list=>{for(const e of list.getEntries())if(events.length<2048)events.push({type:'longtask',time:e.startTime-epoch,duration:e.duration});}).observe({entryTypes:['longtask']});}catch{}
+ const original=app.three.onBeforeRender;app.three.onBeforeRender=e=>{
+ const now=performance.now(),sec=Math.floor((now-epoch)/1000);if(profileLast)profileTimes.push(now-profileLast);profileLast=now;
+ if(sec!==second){second=sec;samples.push({sec,heap:performance.memory?.usedJSHeapSize,textures:app.three.renderer.info.memory.textures,geometries:app.three.renderer.info.memory.geometries,visibility:document.visibilityState});
+ const queue=app.three.renderer.backend.device?.queue;if(queue){const time=performance.now();queue.onSubmittedWorkDone().then(()=>events.push({type:'gpuFence',time:time-epoch,duration:performance.now()-time}));}}
+ original(e);profileCpu.push(performance.now()-now);
+ };
+ window.dancerMetrics=()=>({frames:profileTimes,cpu:profileCpu,samples,events,api:app.three.renderer.backend.isWebGPUBackend?'WebGPU':'WebGL2',heap:performance.memory?.usedJSHeapSize,draws:app.three.renderer.info.render.calls});
+ }
+ let fadeTimer;const canvas=document.getElementById('canvas');let pointerInside=false,wandering=false,hidden=false,active=true,lastX=.5,lastY=.5,horizontalScale=1,horizontalTarget=1;
+ const motion=new WanderingMotion(),wanderBefore=app.three.onBeforeRender;
+ app.three.onBeforeRender=e=>{horizontalScale+=(horizontalTarget-horizontalScale)*(1-Math.exp(-Math.min(.05,e.delta)/.2));if(wandering){const p=motion.step(e.delta);const w=app.three.size.width,h=app.three.size.height,r=Math.min(w,h);app.setPointer(w*.5+(p.x-.5)*r*horizontalScale,h*.5+(p.y-.5)*r);}wanderBefore(e);};
+ function showTrail(){if(hidden)return;clearTimeout(fadeTimer);canvas.style.opacity='1';if(active)app.three.resume();}
+ function fadeTrail(){canvas.style.opacity='0';clearTimeout(fadeTimer);fadeTimer=setTimeout(()=>{if(!pointerInside&&!wandering)app.three.pause();},700);}
+ window.dancerActive=value=>{active=value;if(active&&!hidden&&(pointerInside||wandering))app.three.resume();else app.three.pause();};
+ window.dancerPointer=(x,y)=>{if(hidden)return;lastX=x/app.three.size.width;lastY=y/app.three.size.height;if(wandering)return;if(!pointerInside){pointerInside=true;showTrail();}app.setPointer(x,y);};
+ window.dancerLeave=()=>{pointerInside=false;if(wandering)return;app.leavePointer();fadeTrail();};
+ window.dancerWander=m=>{hidden=!!m.hidden;wandering=m.enabled&&!hidden;pointerInside=m.inside;
+  if(hidden){pointerInside=false;clearTimeout(fadeTimer);canvas.style.opacity='0';app.leavePointer();app.three.pause();return;}
+  if(wandering){motion.start(lastX,lastY);showTrail();}
+  else if(pointerInside){showTrail();window.dancerPointer(m.x,m.y);}
+  else{app.leavePointer();fadeTrail();}
+ };
+ window.chrome.webview.addEventListener('message',event=>{const m=event.data;if(m.type==='move'){try{window.dancerPointer(m.x,m.y);}finally{window.chrome.webview.postMessage('pointer-ready');}}else if(m.type==='leave')window.dancerLeave();else if(m.type==='wander')window.dancerWander(m);else if(m.type==='bass'&&wandering)motion.beat();else if(m.type==='bass-level')motion.bass(m.level);else if(m.type==='fullscreen')horizontalTarget=m.enabled?1.8:1;});
+ if(window.__dancerNativeFrames){
+  let nextFrame=null,frameId=0,clockLive=false;
+  const sendClock=value=>{if(clockLive!==value){clockLive=value;window.chrome.webview.postMessage(value?'clock:active':'clock:idle');}};
+  window.chrome.webview.addEventListener('message',event=>{if(event.data.type!=='frame')return;try{if(typeof event.data.bassLevel==='number')motion.bass(event.data.bassLevel);if(event.data.pointer)window.dancerPointer(event.data.pointer.x,event.data.pointer.y);const callback=nextFrame;nextFrame=null;if(callback)callback(performance.now());}finally{window.chrome.webview.postMessage('clock:frame-ready');}});
+  const resume=app.three.resume.bind(app.three),pause=app.three.pause.bind(app.three);
+  app.three.resume=()=>{resume();sendClock(true);};app.three.pause=()=>{pause();sendClock(false);};
+  app.three.renderer.init().then(()=>{
+   const animation=app.three.renderer._animation;animation.stop();
+   animation.setContext({requestAnimationFrame(callback){nextFrame=callback;return ++frameId;},cancelAnimationFrame(){nextFrame=null;}});
+   animation.start();sendClock(!!animation.getAnimationLoop());
+  }).catch(e=>window.chrome.webview.postMessage('error: '+e.message));
+ }
+ window.chrome.webview.postMessage('ready');
+} catch(e){window.chrome.webview.postMessage('error: '+e.message);}
+window.addEventListener('error',e=>window.chrome.webview.postMessage('error: '+e.message));
+</script></body></html>

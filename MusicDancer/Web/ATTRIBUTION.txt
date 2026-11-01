@@ -1,0 +1,18 @@
+Tubes Cursor by Kevin Levron (soju22)
+https://codepen.io/soju22/pen/qEbdVjK
+https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js
+License: CC BY-NC-SA 4.0 https://creativecommons.org/licenses/by-nc-sa/4.0/
+Original library retained. Integration changes: local loading, transparent background, native pointer forwarding.
+Three.js notices are retained in the bundled library.
+WebView2 SDK: Microsoft copyright and license in Vendor/WebView2/LICENSE.txt.
+Shader adaptation: derive output alpha from bloom brightness so the effect composites over the selected WPF scene background.
+Memory optimization: reused Frenet-frame, tangent and scratch vectors; original interpolation, geometry, colors, lighting, idle path and render resolution retained. Numerical equivalence verified against the original algorithm.
+Lifecycle adaptation: explicit pause/resume of the original render loop when the main window is minimized/restored.
+Optimization: cached constant trigonometric geometry tables; tested position and normal buffers bit-for-bit equivalent over 100 animated frames. Native pointer forwarding coalesced once per display frame via WebView messages.
+Requested trail change: chain interpolation 0.5 -> 2/3. Mean following delay per chain link (1-alpha)/alpha is halved, giving half the moving trail length and twice the tail catch-up response without reducing geometry detail.
+Liquid Effect by Kevin Levron (soju22): https://codepen.io/soju22/pen/myVWBGa — CC BY-NC-SA 4.0. Original threejs-components@0.0.27 liquid1 shader retained. Changes: optional pointer listeners, explicit lifecycle; theme texture and bass-trigger adapter.
+Further optimization: allocation-free non-periodic simplex noise/gradient, numerically identical over 100,000 samples. All 16 tube position/normal buffers verified bit-for-bit over 150 frames. Direct pointer API avoids synthetic DOM events and layout reads; native input has one acknowledged message in flight and retains only the newest pending position. Geometry, interpolation, pixel ratio, bloom, colors and lights unchanged.
+Refinement: reuse unchanged arc-length parameter mappings and per-segment spline polynomials within a geometry update; invalidate spline cache each update. All 16 geometry position/normal buffers verified bit-for-bit. Particle translation now uses render transforms to avoid per-frame WPF layout invalidation. Pointer acknowledgements immediately flush an already pending newest position.
+Render optimization: batch all 16 tubes into one indexed mesh with per-vertex linear colors, preserve original topology, coordinates, normals, material response and ordering. Reuse bloom target dimensions until actual resize, retaining all five mip levels and original render resolution. Original tube arrays remain available for numerically identical CPU updates.
+Bloom optimization: exact bilinear pairing of Gaussian taps for same-resolution blur passes (first horizontal pass and all five vertical passes). Retain original sampling on downsampled horizontal passes because pairing there would alter the filter. All five HDR mip levels, resolution, bloom strength/radius/threshold preserved. Separate first-horizontal material avoids per-frame texture rebinding against the first vertical pass. CPU filter equivalence tested to 1.3e-15; GPU HDR comparison recorded in Diagnostics/bloom-gpu-result.json.
+Frame pacing: original geometry, materials, HDR bloom, interpolation and resolution retained. The renderer animation context receives acknowledged native 140 Hz frame pulses instead of browser VSync callbacks, avoiding duplicate browser/window presentation pacing. Mouse coordinates are coalesced into the same frame message. Native clock pauses for hide, fade-out and minimize.
