@@ -22,7 +22,9 @@ Windows 10/11 x64 is required. The release includes .NET; install [Microsoft Edg
 
 ![Two characters dancing together in duet mode](docs/images/duet.png)
 
-### Song lyrics
+### Song lyrics — Spotify only
+
+**This lyrics mode works only with Spotify.** Open the lyrics panel in the Spotify desktop app and keep its window unminimized.
 
 ![Spotify lyrics displayed behind the dancing characters](docs/images/lyrics.png)
 
