@@ -22,6 +22,10 @@ Windows 10/11 x64 is required. The release includes .NET; install [Microsoft Edg
 
 ![Two characters dancing together in duet mode](docs/images/duet.png)
 
+### Song lyrics
+
+![Spotify lyrics displayed behind the dancing characters](docs/images/lyrics.png)
+
 ## Features
 
 - System audio capture: works with Spotify and other music apps.
